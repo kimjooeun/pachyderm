@@ -22,6 +22,7 @@ import (
 	col "github.com/pachyderm/pachyderm/src/server/pkg/collection"
 	"github.com/pachyderm/pachyderm/src/server/pkg/dbutil"
 	"github.com/pachyderm/pachyderm/src/server/pkg/hashtree"
+	"github.com/pachyderm/pachyderm/src/server/pkg/obj"
 	"github.com/pachyderm/pachyderm/src/server/pkg/serviceenv"
 	"github.com/pachyderm/pachyderm/src/server/pkg/storage/chunk"
 	"github.com/pachyderm/pachyderm/src/server/pkg/storage/fileset"
@@ -70,7 +71,8 @@ func newDriverV2(env *serviceenv.ServiceEnv, txnEnv *txnenv.TransactionEnv, etcd
 	if err != nil {
 		return nil, err
 	}
-	chunkStorage := chunk.NewStorage(objClient, chunk.NewPostgresStore(db), tracker, chunkStorageOpts...)
+	memObjs := obj.NewCacheClient(obj.NewVoid(), obj.NewMem(), 10)
+	chunkStorage := chunk.NewStorage(objClient, memObjs, chunk.NewPostgresStore(db), tracker, chunkStorageOpts...)
 	d2.storage = fileset.NewStorage(fileset.NewPostgresStore(db), tracker, chunkStorage, env.FileSetStorageOptions()...)
 	d2.compactionQueue, err = work.NewTaskQueue(context.Background(), d2.etcdClient, d2.prefix, storageTaskNamespace)
 	if err != nil {
